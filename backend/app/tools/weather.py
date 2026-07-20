@@ -2,7 +2,24 @@
 Fetches current weather and a simple forecast from Open-Meteo (free, no key).
 """
 import requests
-from typing import Optional
+
+
+def resolve_location(location: str) -> tuple[float, float]:
+    """Accept either `latitude,longitude` or a place name using Open-Meteo's free geocoder."""
+    try:
+        lat, lon = map(float, location.split(","))
+        return lat, lon
+    except (ValueError, TypeError):
+        response = requests.get(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": location, "count": 1, "language": "en", "format": "json"},
+            timeout=5,
+        )
+        response.raise_for_status()
+        result = response.json().get("results", [])
+        if not result:
+            raise ValueError(f"Location '{location}' was not found")
+        return float(result[0]["latitude"]), float(result[0]["longitude"])
 
 def get_weather(lat: float, lon: float) -> str:
     """

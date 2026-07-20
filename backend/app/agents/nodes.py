@@ -1,173 +1,90 @@
+"""Fast, deterministic LangGraph nodes backed by free public/local tools.
+
+The previous graph called an 8B model twice per request. Routing and synthesis
+are deliberately lightweight so the farmer gets a useful answer even without a
+running local model. Ollama with Llama 3.2 3B remains the recommended optional
+local model for future conversational enhancement, with no API key required.
 """
-LangGraph node functions. Each node receives the state and returns an update.
-We use IBM Granite via Ollama for reasoning nodes.
-"""
-import json
-from typing import Dict, Any, List
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from typing import Any, Dict
+
+from langchain_core.messages import AIMessage, HumanMessage
+
 from app.agents.state import AgentState
-from app.core.config import settings
-from app.tools.weather import get_weather
+from app.rag.retriever import search_kb
+from app.services.watson_discovery import query_discovery
 from app.tools.crop_disease import diagnose
 from app.tools.market import get_market_prices
 from app.tools.sustainability import get_sustainability_advice
+from app.tools.weather import get_weather, resolve_location
 
-# ─── LLM instance (reused) ──────────────────────
-llm = ChatOllama(
-    model=settings.OLLAMA_MODEL,
-    base_url=settings.OLLAMA_BASE_URL,
-    temperature=0.3,
-)
 
-# ─── Supervisor Node ────────────────────────────
 def supervisor_node(state: AgentState) -> Dict[str, Any]:
-    user_msg = state["messages"][-1].content if state["messages"] else ""
-    prompt = f"""You are a supervisor in an agricultural AI assistant.
-Given the user query and farm context, decide which specialist agents to activate.
+    """Choose specialists predictably and preserve explicit report selection."""
+    if state.get("required_agents"):
+        return {"required_agents": state["required_agents"]}
 
-Agents:
-- weather: provides weather forecast
-- crop_doctor: diagnoses crop problems and gives treatment advice
-- market: gives market prices and selling opportunities
-- sustainability: suggests eco-friendly farming practices
+    query = (state["messages"][-1].content if state.get("messages") else "").lower()
+    agents = ["weather"]
+    if any(word in query for word in ("report", "full plan", "overview")):
+        agents = ["weather", "crop_doctor", "market", "sustainability"]
+    else:
+        if any(word in query for word in ("pest", "disease", "yellow", "spot", "leaf", "wilt", "problem", "symptom")):
+            agents.append("crop_doctor")
+        if any(word in query for word in ("price", "market", "sell", "buyer", "profit")):
+            agents.append("market")
+        if any(word in query for word in ("soil", "water", "sustain", "organic", "climate", "rotation")):
+            agents.append("sustainability")
+    if len(agents) == 1 and state.get("problem"):
+        agents.append("crop_doctor")
+    return {"required_agents": agents}
 
-Rules:
-- If the user asks for a full report or uses the word 'report', activate ALL agents.
-- If the user mentions a crop problem, activate crop_doctor.
-- If the user asks about prices or market, activate market.
-- If the user asks about the environment or sustainability, activate sustainability.
-- Weather can always be helpful, so activate it unless the query clearly doesn't need it.
-
-User query: "{user_msg}"
-Farm context: crop={state.get('crop')}, location={state.get('location')}
-
-Return ONLY a JSON list of agent names, e.g., ["weather", "crop_doctor"]"""
-
-
-# # ─── Planner Node ───────────────────────────────
-# def planner_node(state: AgentState) -> Dict[str, Any]:
-#     """
-#     Based on required agents, build a plan and invoke them.
-#     This node acts as a simple scheduler.
-#     """
-#     # We'll actually execute the specialists in the graph via conditional edges,
-#     # but here we just record the plan.
-#     return {}  # no state update needed; routing handled by graph edges
-
-
-# # ─── Specialist Nodes ───────────────────────────
-# def weather_node(state: AgentState) -> Dict[str, Any]:
-#     loc = state.get("location", "0,0")
-#     try:
-#         lat, lon = map(float, loc.split(","))
-#     except:
-#         lat, lon = 40.7128, -74.0060  # default NYC
-#     data = get_weather(lat, lon)
-#     return {"weather_data": data}
-
-# def crop_doctor_node(state: AgentState) -> Dict[str, Any]:
-#     crop = state.get("crop", "unknown")
-#     problem = state.get("problem", "") or state["messages"][-1].content
-#     advice = diagnose(crop, problem)
-#     return {"disease_data": advice}
-
-# def market_node(state: AgentState) -> Dict[str, Any]:
-#     crop = state.get("crop", "maize")
-#     prices = get_market_prices(crop)
-#     return {"market_data": prices}
-
-# def sustainability_node(state: AgentState) -> Dict[str, Any]:
-#     crop = state.get("crop", "unknown")
-#     tips = get_sustainability_advice(crop)
-#     return {"sustainability_data": tips}
-
-# ─── reflection Node ────────────────────────────
-def reflection_node(state: AgentState) -> Dict[str, Any]:
-    """Combine specialist data + conversation history and generate a response."""
-    parts = []
-    if state.get("weather_data"):
-        parts.append(f"### Weather\n{state['weather_data']}")
-    if state.get("disease_data"):
-        parts.append(f"### Crop Health\n{state['disease_data']}")
-    if state.get("market_data"):
-        parts.append(f"### Market\n{state['market_data']}")
-    if state.get("sustainability_data"):
-        parts.append(f"### Sustainability\n{state['sustainability_data']}")
-
-    combined = "\n\n".join(parts)
-    if not combined:
-        combined = "No specialist data available."
-
-    # Build conversation history (last 4 messages)
-    history_str = ""
-    messages = state.get("messages", [])
-    if len(messages) > 1:
-        last_msgs = messages[-4:]  # enough context
-        for msg in last_msgs:
-            role = "user" if isinstance(msg, HumanMessage) else "assistant"
-            content = msg.content[:300]  # truncate long messages
-            history_str += f"{role}: {content}\n"
-
-    # Current user question is the last user message
-    current_question = ""
-    for msg in reversed(messages):
-        if isinstance(msg, HumanMessage):
-            current_question = msg.content
-            break
-
-    system_prompt = f"""You are a helpful agricultural assistant.
-Refer to the conversation history to give consistent, contextual advice.
-
-Conversation history:
-{history_str if history_str else "No prior conversation."}
-
-Current question: "{current_question}"
-Crop: {state.get('crop')}
-Location: {state.get('location')}
-
-Expert data gathered from tools:
-{combined}
-
-Write a final, friendly answer. Use bullet points if needed. Be encouraging and practical."""
-
-    response = llm.invoke([SystemMessage(content=system_prompt)])
-    final = response.content.strip()
-    return {"final_response": final}
-
-# # ─── Memory Node ────────────────────────────────
-# def memory_node(state: AgentState) -> Dict[str, Any]:
-#     """
-#     This node doesn't alter state; we'll store messages in the API endpoint.
-#     (Here we just pass through.)
-#     """
-#     return {}
 
 def executor_node(state: AgentState) -> dict:
-    """Run all specialist tools that the supervisor requested."""
+    """Run the selected specialists, using optional Discovery then local RAG."""
     agents = state.get("required_agents", [])
-    updates = {}
+    updates: dict[str, Any] = {}
     crop = state.get("crop", "unknown")
-    problem = state.get("problem", "") or (
-        state["messages"][-1].content if state["messages"] else ""
-    )
-    loc = state.get("location", "0,0")
-    try:
-        lat, lon = map(float, loc.split(","))
-    except Exception:
-        lat, lon = 40.7128, -74.0060
+    problem = state.get("problem", "") or (state["messages"][-1].content if state.get("messages") else "")
 
     if "weather" in agents:
-        updates["weather_data"] = get_weather(lat, lon)
+        try:
+            lat, lon = resolve_location(state.get("location", ""))
+            updates["weather_data"] = get_weather(lat, lon)
+        except Exception as exc:
+            updates["weather_data"] = f"Weather lookup unavailable: {exc}"
+
     if "crop_doctor" in agents:
-        updates["disease_data"] = diagnose(crop, problem)
+        query = f"{crop} problem: {problem}"
+        updates["disease_data"] = query_discovery(query) or search_kb(query, top_k=2) or diagnose(crop, problem)
+
     if "market" in agents:
         updates["market_data"] = get_market_prices(crop)
-    if "sustainability" in agents:
-        updates["sustainability_data"] = get_sustainability_advice(crop)
 
-    # Ensure we always return at least one state key
+    if "sustainability" in agents:
+        query = f"sustainable practices for {crop}"
+        updates["sustainability_data"] = query_discovery(query) or search_kb(query, top_k=2) or get_sustainability_advice(crop)
+
     if not updates:
         updates["messages"] = [AIMessage(content="No specialist agents were required for this query.")]
-    
     return updates
+
+
+def reflection_node(state: AgentState) -> Dict[str, Any]:
+    """Create a compact action plan without a second, slow model call."""
+    labels = (
+        ("weather_data", "Weather outlook"),
+        ("disease_data", "Crop health"),
+        ("market_data", "Market signal"),
+        ("sustainability_data", "Sustainable practice"),
+    )
+    sections = [f"**{label}**\n{state[key]}" for key, label in labels if state.get(key)]
+    question = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
+    final = (
+        f"Here is your AgriGuard action brief for **{state.get('crop', 'your crop').title()}** "
+        f"in **{state.get('location', 'your location')}**.\n\n"
+        f"**Your question:** {question}\n\n"
+        + "\n\n".join(sections)
+        + "\n\n**Next steps:** Inspect the field before treating, follow product labels and local guidance, "
+          "and contact an agricultural extension officer if symptoms spread quickly."
+    )
+    return {"final_response": final}

@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     # LLM
     LLM_PROVIDER: str = "ollama"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "granite3.1-dense:8b"
+    # Llama 3.2 3B runs locally through Ollama, needs no API key, and is much
+    # more responsive on typical student laptops than Granite 3.1 8B.
+    OLLAMA_MODEL: str = "llama3.2:3b"
 
     # IBM Watson (optional)
     WATSONX_API_KEY: str = ""
@@ -24,9 +26,16 @@ class Settings(BaseSettings):
 
     # API
     API_V1_STR: str = "/api/v1"
+    MAX_CHAT_HISTORY: int = 6
 
     class Config:
         env_file = ".env"
         case_sensitive = True
 
 settings = Settings()
+
+# Watson Discovery
+WATSON_DISCOVERY_API_KEY: str = ""
+WATSON_DISCOVERY_URL: str = "https://api.us-south.discovery.watson.cloud.ibm.com"
+WATSON_DISCOVERY_PROJECT_ID: str = ""
+WATSON_DISCOVERY_COLLECTION_ID: str = ""

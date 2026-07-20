@@ -13,6 +13,9 @@ export const createFarmProfile = (data: {
   problem?: string;
 }) => api.post('/api/v1/farm/', data);
 
+export const listFarmProfiles = (username: string) =>
+  api.get('/api/v1/farm/', { params: { username } });
+
 // Chat
 export const chatWithAgent = (data: {
   username: string;

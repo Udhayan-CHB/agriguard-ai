@@ -23,14 +23,31 @@ def create_farm_profile(profile: FarmProfileCreate, db: Session = Depends(get_db
         db.commit()
         db.refresh(user)
 
-    farm = FarmProfile(
-        user_id=user.id,
-        location=profile.location,
-        crop=profile.crop,
-        farm_size_hectares=profile.farm_size_hectares,
-        problem=profile.problem,
-    )
-    db.add(farm)
+    farm = db.query(FarmProfile).filter(
+        FarmProfile.user_id == user.id,
+        FarmProfile.location.ilike(profile.location),
+        FarmProfile.crop.ilike(profile.crop),
+    ).first()
+    if farm:
+        farm.farm_size_hectares = profile.farm_size_hectares
+        farm.problem = profile.problem
+    else:
+        farm = FarmProfile(
+            user_id=user.id,
+            location=profile.location,
+            crop=profile.crop,
+            farm_size_hectares=profile.farm_size_hectares,
+            problem=profile.problem,
+        )
+        db.add(farm)
     db.commit()
     db.refresh(farm)
     return farm
+
+
+@router.get("/", response_model=list[FarmProfileRead])
+def list_farm_profiles(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username.strip()).first()
+    if not user:
+        return []
+    return db.query(FarmProfile).filter(FarmProfile.user_id == user.id).order_by(FarmProfile.created_at.desc()).all()

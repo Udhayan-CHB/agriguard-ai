@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -26,15 +26,13 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const [mounted] = useState(() => typeof window !== "undefined");
 
   return (
-    <aside className="w-64 bg-card border-r border-border p-4 flex flex-col gap-6">
+    <aside className="w-16 shrink-0 bg-card border-r border-border p-2 sm:w-64 sm:p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 text-primary font-bold text-xl">
         <Sprout className="w-6 h-6" />
-        AgriGuard AI
+        <span className="hidden sm:inline">AgriGuard AI</span>
       </div>
 
       <nav className="flex flex-col gap-1">
@@ -43,14 +41,14 @@ export default function Sidebar() {
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+              "flex items-center justify-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors sm:justify-start",
               pathname === href
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <Icon className="w-4 h-4" />
-            {label}
+            <span className="hidden sm:inline">{label}</span>
           </Link>
         ))}
       </nav>
