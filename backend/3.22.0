@@ -1,0 +1,39 @@
+Collecting ibm-watson
+  Downloading ibm_watson-11.2.0.tar.gz (363 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting ibm-cloud-sdk-core
+  Downloading ibm_cloud_sdk_core-3.26.0-py3-none-any.whl.metadata (8.7 kB)
+Requirement already satisfied: requests<3.0,>=2.0 in .\venv\lib\site-packages (from ibm-watson) (2.32.3)
+Requirement already satisfied: python_dateutil>=2.5.3 in .\venv\lib\site-packages (from ibm-watson) (2.9.0.post0)
+Requirement already satisfied: websocket-client>=1.1.0 in .\venv\lib\site-packages (from ibm-watson) (1.9.0)
+Collecting requests<3.0,>=2.0 (from ibm-watson)
+  Using cached requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: urllib3<3.0.0,>=2.4.0 in .\venv\lib\site-packages (from ibm-cloud-sdk-core) (2.7.0)
+Collecting PyJWT<3.0.0,>=2.11.0 (from ibm-cloud-sdk-core)
+  Using cached pyjwt-2.13.0-py3-none-any.whl.metadata (3.4 kB)
+Requirement already satisfied: typing_extensions>=4.0 in .\venv\lib\site-packages (from PyJWT<3.0.0,>=2.11.0->ibm-cloud-sdk-core) (4.16.0)
+Requirement already satisfied: six>=1.5 in .\venv\lib\site-packages (from python_dateutil>=2.5.3->ibm-watson) (1.17.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in .\venv\lib\site-packages (from requests<3.0,>=2.0->ibm-watson) (3.4.9)
+Requirement already satisfied: idna<4,>=2.5 in .\venv\lib\site-packages (from requests<3.0,>=2.0->ibm-watson) (3.18)
+Requirement already satisfied: certifi>=2023.5.7 in .\venv\lib\site-packages (from requests<3.0,>=2.0->ibm-watson) (2026.6.17)
+Downloading ibm_cloud_sdk_core-3.26.0-py3-none-any.whl (76 kB)
+Using cached pyjwt-2.13.0-py3-none-any.whl (31 kB)
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+Building wheels for collected packages: ibm-watson
+  Building wheel for ibm-watson (pyproject.toml): started
+  Building wheel for ibm-watson (pyproject.toml): finished with status 'done'
+  Created wheel for ibm-watson: filename=ibm_watson-11.2.0-py3-none-any.whl size=366080 sha256=8838fd0499626ea7c114e9560c7e227d2f1fefcccd71148179256a381ac9cc2b
+  Stored in directory: c:\users\kenzo68\appdata\local\pip\cache\wheels\06\50\5c\8cc3da7e02fc15106b485087bc12f99efbb10ba6d480c81b7e
+Successfully built ibm-watson
+Installing collected packages: requests, PyJWT, ibm-cloud-sdk-core, ibm-watson
+  Attempting uninstall: requests
+    Found existing installation: requests 2.32.3
+    Uninstalling requests-2.32.3:
+      Successfully uninstalled requests-2.32.3
+
+Successfully installed PyJWT-2.13.0 ibm-cloud-sdk-core-3.26.0 ibm-watson-11.2.0 requests-2.34.2

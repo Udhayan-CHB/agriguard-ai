@@ -82,12 +82,9 @@ Return ONLY a JSON list of agent names, e.g., ["weather", "crop_doctor"]"""
 #     tips = get_sustainability_advice(crop)
 #     return {"sustainability_data": tips}
 
-
-# ─── Reflection Node ────────────────────────────
+# ─── reflection Node ────────────────────────────
 def reflection_node(state: AgentState) -> Dict[str, Any]:
-    """
-    Combine all specialist data and generate a coherent response using Granite.
-    """
+    """Combine specialist data + conversation history and generate a response."""
     parts = []
     if state.get("weather_data"):
         parts.append(f"### Weather\n{state['weather_data']}")
@@ -102,23 +99,41 @@ def reflection_node(state: AgentState) -> Dict[str, Any]:
     if not combined:
         combined = "No specialist data available."
 
-    user_query = state["messages"][-1].content if state["messages"] else ""
-    system_prompt = f"""You are a helpful agricultural assistant.
-Based on the following expert information and the farmer's query, write a concise, actionable response.
+    # Build conversation history (last 4 messages)
+    history_str = ""
+    messages = state.get("messages", [])
+    if len(messages) > 1:
+        last_msgs = messages[-4:]  # enough context
+        for msg in last_msgs:
+            role = "user" if isinstance(msg, HumanMessage) else "assistant"
+            content = msg.content[:300]  # truncate long messages
+            history_str += f"{role}: {content}\n"
 
-Farmer query: "{user_query}"
+    # Current user question is the last user message
+    current_question = ""
+    for msg in reversed(messages):
+        if isinstance(msg, HumanMessage):
+            current_question = msg.content
+            break
+
+    system_prompt = f"""You are a helpful agricultural assistant.
+Refer to the conversation history to give consistent, contextual advice.
+
+Conversation history:
+{history_str if history_str else "No prior conversation."}
+
+Current question: "{current_question}"
 Crop: {state.get('crop')}
 Location: {state.get('location')}
 
-Expert data:
+Expert data gathered from tools:
 {combined}
 
-Write a final answer for the farmer. Be encouraging and practical."""
-    
+Write a final, friendly answer. Use bullet points if needed. Be encouraging and practical."""
+
     response = llm.invoke([SystemMessage(content=system_prompt)])
     final = response.content.strip()
     return {"final_response": final}
-
 
 # # ─── Memory Node ────────────────────────────────
 # def memory_node(state: AgentState) -> Dict[str, Any]:
