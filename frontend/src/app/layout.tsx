@@ -18,10 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark">
       <body className={inter.className}>
         <Providers>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ThemeProvider>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
               <main className="min-w-0 flex-1 overflow-auto p-3 sm:p-6">{children}</main>

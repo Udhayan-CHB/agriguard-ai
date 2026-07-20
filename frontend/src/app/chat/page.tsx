@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, Bot, Send, Sparkles, UserRound } from "lucide-react";
 import { chatWithAgent } from "@/lib/api";
-import { getActiveProfile, type FarmProfile } from "@/lib/farm-profile";
+import { getActiveProfile, subscribeToActiveProfile, type FarmProfile } from "@/lib/farm-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,11 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 type Message = { role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [profile] = useState<FarmProfile | null>(() => getActiveProfile());
+  const profile = useSyncExternalStore(subscribeToActiveProfile, getActiveProfile, () => null) as FarmProfile | null;
   const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: "Welcome to AgriGuard. Save a farm profile, then ask about crop health, weather, markets, or sustainable practices." }]);
   const [input, setInput] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const mutation = useMutation({
     mutationFn: (message: string) => chatWithAgent({ username: profile!.username, farm_profile_id: profile!.id, message }),

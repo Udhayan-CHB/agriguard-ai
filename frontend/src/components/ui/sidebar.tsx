@@ -10,11 +10,8 @@ import {
   User,
   Sprout,
   Sun,
-  Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
-import { useState } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,8 +22,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const [mounted] = useState(() => typeof window !== "undefined");
+  const toggleTheme = () => document.documentElement.classList.toggle("dark");
 
   return (
     <aside className="w-16 shrink-0 bg-card border-r border-border p-2 sm:w-64 sm:p-4 flex flex-col gap-6">
@@ -54,15 +50,9 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto">
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+          <Sun className="w-4 h-4" />
+        </Button>
       </div>
     </aside>
   );
