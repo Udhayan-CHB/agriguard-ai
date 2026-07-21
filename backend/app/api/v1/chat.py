@@ -12,7 +12,6 @@ from app.api.deps import get_current_user, get_db
 
 router = APIRouter()
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -47,11 +46,13 @@ def get_chat_context(request: ChatRequest, db: Session):
 
 
 @router.post("/", response_model=ChatResponse)
-def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
+def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Validate user
-    user = db.query(User).filter(User.username == request.username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # request.username is ignored; we use current_user.username
+    # farm_profile_id must belong to current user if provided
+    # user = db.query(User).filter(User.username == request.username).first()
+    # if not user:
+    #     raise HTTPException(status_code=404, detail="User not found")
 
     # If no farm profile, use generic defaults
     location = "unknown"
@@ -63,7 +64,7 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     if request.farm_profile_id:
         farm = db.query(FarmProfile).filter(
             FarmProfile.id == request.farm_profile_id,
-            FarmProfile.user_id == user.id
+            FarmProfile.user_id == current_user.id
         ).first()
         if not farm:
             raise HTTPException(status_code=404, detail="Farm profile not found")
@@ -74,13 +75,14 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     # else: stay with generic defaults
 
     # Retrieve/create conversation (link to farm if present, else user-wide)
+    # conversation linked to user and optionally to farm
     conversation = db.query(Conversation).filter(
-        Conversation.user_id == user.id,
+        Conversation.user_id == current_user.id,
         Conversation.farm_profile_id == (request.farm_profile_id if farm else None)
     ).first()
     if not conversation:
         conversation = Conversation(
-            user_id=user.id,
+            user_id=current_user.id,
             farm_profile_id=request.farm_profile_id if farm else None
         )
         db.add(conversation)
@@ -109,12 +111,16 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
 
     result = agent_graph.invoke(initial_state)
     final_response = result.get("final_response", "I'm not sure how to help with that.")
-
-    # Save messages
-    msg_user = Message(conversation_id=conversation.id, role="user", content=request.message)
-    db.add(msg_user)
-    msg_ai = Message(conversation_id=conversation.id, role="assistant", content=final_response)
-    db.add(msg_ai)
+    db.add(Message(conversation_id=conversation.id, role="user", content=request.message))
+    db.add(Message(conversation_id=conversation.id, role="assistant", content=final_response))
     db.commit()
 
     return ChatResponse(reply=final_response, agent_path="Supervisor → Executor → Reflection")
+    # Save messages
+    # msg_user = Message(conversation_id=conversation.id, role="user", content=request.message)
+    # db.add(msg_user)
+    # msg_ai = Message(conversation_id=conversation.id, role="assistant", content=final_response)
+    # db.add(msg_ai)
+    # db.commit()
+
+    #return ChatResponse(reply=final_response, agent_path="Supervisor → Executor → Reflection")

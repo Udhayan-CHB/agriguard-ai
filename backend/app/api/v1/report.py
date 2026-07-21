@@ -5,6 +5,7 @@ from app.db.models import FarmProfile, User
 from app.schemas.report import ReportRequest, ReportResponse
 from app.agents.graph import agent_graph
 from langchain_core.messages import HumanMessage
+from app.api.deps import get_current_user, get_db
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=ReportResponse)
-def generate_report(request: ReportRequest, db: Session = Depends(get_db)):
+def generate_report(request: ReportRequest, db: Session = Depends(get_db), current_user: user = Depends(get_current_user)):
     farm = db.query(FarmProfile).filter(FarmProfile.id == request.farm_profile_id).first()
     if not farm:
         raise HTTPException(status_code=404, detail="Farm profile not found")
