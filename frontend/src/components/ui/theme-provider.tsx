@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProviderProps } from "next-themes";
 
-/** The application has a deterministic dark default; no runtime theme script is needed. */
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }

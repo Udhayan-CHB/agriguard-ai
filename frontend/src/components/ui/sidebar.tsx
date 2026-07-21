@@ -7,22 +7,23 @@ import {
   LayoutDashboard,
   MessageSquare,
   FileText,
-  User,
   Sprout,
-  Sun,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/report", label: "Report", icon: FileText },
-  { href: "/profile", label: "Profile", icon: User },
-];
+import { useAuth } from "@/context/AuthContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const toggleTheme = () => document.documentElement.classList.toggle("dark");
+  const { user, logout } = useAuth();
+
+  const isAdmin = user?.role === "admin";
+
+  const navItems = [
+    ...(isAdmin ? [{ href: "/", label: "Dashboard", icon: LayoutDashboard }] : []),
+    { href: "/chat", label: "Chat", icon: MessageSquare },
+    ...(isAdmin ? [{ href: "/report", label: "Report", icon: FileText }] : []),
+  ];
 
   return (
     <aside className="w-16 shrink-0 bg-card border-r border-border p-2 sm:w-64 sm:p-4 flex flex-col gap-6">
@@ -31,7 +32,7 @@ export default function Sidebar() {
         <span className="hidden sm:inline">AgriGuard AI</span>
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 flex-1">
         {navItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -49,9 +50,16 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto">
-        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-          <Sun className="w-4 h-4" />
+      <div className="mt-auto flex flex-col gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={logout}
+          aria-label="Logout"
+          className="self-center sm:self-stretch"
+        >
+          <LogOut className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline text-xs">Logout</span>
         </Button>
       </div>
     </aside>
