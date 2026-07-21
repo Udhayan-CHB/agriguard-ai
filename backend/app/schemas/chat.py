@@ -3,7 +3,7 @@ from typing import Optional
 
 class ChatRequest(BaseModel):
     username: str
-    farm_profile_id: int
+    farm_profile_id: Optional[int] = None
     message: str
 
 class ChatResponse(BaseModel):

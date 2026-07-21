@@ -8,19 +8,29 @@ export type FarmProfile = {
 };
 
 const PROFILE_KEY = "agriguard-active-profile";
+let cachedRaw: string | null | undefined;
+let cachedProfile: FarmProfile | null = null;
 
 export function getActiveProfile(): FarmProfile | null {
   if (typeof window === "undefined") return null;
   const saved = window.localStorage.getItem(PROFILE_KEY);
+  // useSyncExternalStore requires referentially stable snapshots. Only parse
+  // when storage has genuinely changed; otherwise return the same object.
+  if (saved === cachedRaw) return cachedProfile;
+  cachedRaw = saved;
   try {
-    return saved ? JSON.parse(saved) as FarmProfile : null;
+    cachedProfile = saved ? JSON.parse(saved) as FarmProfile : null;
   } catch {
-    return null;
+    cachedProfile = null;
   }
+  return cachedProfile;
 }
 
 export function saveActiveProfile(profile: FarmProfile) {
-  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  const serialized = JSON.stringify(profile);
+  cachedRaw = serialized;
+  cachedProfile = profile;
+  window.localStorage.setItem(PROFILE_KEY, serialized);
   window.dispatchEvent(new Event("agriguard-profile-changed"));
 }
 

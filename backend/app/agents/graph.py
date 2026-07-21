@@ -10,19 +10,28 @@ from app.agents.nodes import supervisor_node, executor_node, reflection_node
 def build_graph():
     workflow = StateGraph(AgentState)
 
-    # Add nodes
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("executor", executor_node)
     workflow.add_node("reflection", reflection_node)
 
-    # Define edges
     workflow.set_entry_point("supervisor")
-    workflow.add_edge("supervisor", "executor")
+
+    # Conditional edge: if no agents required, go straight to reflection
+    def route_after_supervisor(state: AgentState) -> str:
+        if state.get("required_agents"):
+            return "executor"
+        return "reflection"
+
+    workflow.add_conditional_edges(
+        "supervisor",
+        route_after_supervisor,
+        {
+            "executor": "executor",
+            "reflection": "reflection",
+        }
+    )
+
     workflow.add_edge("executor", "reflection")
     workflow.add_edge("reflection", END)
 
     return workflow.compile()
-
-
-# Build the graph once
-agent_graph = build_graph()

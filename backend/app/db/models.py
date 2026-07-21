@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -8,8 +8,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
+    password_hash = Column(String, nullable=False)
+    role = Column(String, default="farmer")  # "farmer" or "admin"
+    created_at = Column(DateTime, default=datetime.timezone.utc)
 class FarmProfile(Base):
     __tablename__ = "farm_profiles"
 
