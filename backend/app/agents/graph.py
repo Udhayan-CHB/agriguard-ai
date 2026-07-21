@@ -35,3 +35,6 @@ def build_graph():
     workflow.add_edge("reflection", END)
 
     return workflow.compile()
+
+# Build the graph once
+agent_graph = build_graph()
