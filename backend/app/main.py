@@ -5,18 +5,23 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
 
-# Create all tables on startup
 Base.metadata.create_all(bind=engine)
+
+# Ingest documents on startup
+from app.rag.ingest import ingest_documents
+ingest_documents()
 
 app = FastAPI(title="AgriGuard AI API", version="0.1.0")
 
+# CORS – must be BEFORE the router
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],  # or ["*"] for all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")

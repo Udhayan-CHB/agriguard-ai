@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 import { chatWithAgent, createFarmProfile } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,10 +35,16 @@ export default function ChatPage() {
       ]);
       setInput("");
     },
-    onError: () => {
+    onError: (error) => {
+      const detail = axios.isAxiosError(error)
+        ? error.response?.data?.detail
+        : null;
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "I could not reach the advisory service. Check that the FastAPI backend is running, then try again." },
+        {
+          role: "assistant",
+          content: detail || "The advisory service could not complete that request. Please try again.",
+        },
       ]);
     },
   });
