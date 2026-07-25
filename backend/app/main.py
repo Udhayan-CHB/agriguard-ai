@@ -7,10 +7,6 @@ from app.db.session import engine
 
 Base.metadata.create_all(bind=engine)
 
-# Ingest documents on startup
-from app.rag.ingest import ingest_documents
-ingest_documents()
-
 app = FastAPI(title="AgriGuard AI API", version="0.1.0")
 
 # CORS – must be BEFORE the router
