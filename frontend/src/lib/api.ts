@@ -31,7 +31,7 @@ export const createFarmProfile = (data: {
 // Chat
 export const chatWithAgent = (data: {
   username: string;
-  farm_profile_id: number;
+  farm_profile_id?: number;   // optional
   message: string;
 }) => api.post('/api/v1/chat/', data);
 

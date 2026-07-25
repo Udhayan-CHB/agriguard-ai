@@ -15,6 +15,7 @@ from app.tools.crop_disease import diagnose
 from app.tools.market import get_market_prices
 from app.tools.sustainability import get_sustainability_advice
 from app.tools.weather import get_weather, resolve_location
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 
 def supervisor_node(state: AgentState) -> Dict[str, Any]:

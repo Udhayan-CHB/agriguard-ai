@@ -12,7 +12,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
 
-  // 1. Show a simple spinner while AuthProvider is still loading
+  // Always call useEffect, redirect inside if needed
+  useEffect(() => {
+    if (!isLoading && !user && !PUBLIC_PATHS.includes(pathname)) {
+      router.replace("/login");
+    }
+  }, [user, isLoading, pathname, router]);
+
+  // 1. Still loading
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -21,24 +28,21 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  // 2. Public paths – render without sidebar
+  // 2. Public pages – render without sidebar
   if (PUBLIC_PATHS.includes(pathname)) {
     return <>{children}</>;
   }
 
-  // 3. Protected paths – if not logged in, redirect to /login
-  if (!user) {
-    useEffect(() => {
-      router.replace("/login");
-    }, [router]);
-    return null;
+  // 3. Authenticated – show full layout with sidebar
+  if (user) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 p-6 overflow-auto">{children}</main>
+      </div>
+    );
   }
 
-  // 4. Authenticated user on a protected route – show full layout
-  return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 p-6 overflow-auto">{children}</main>
-    </div>
-  );
+  // 4. Not authenticated and not on public page – render nothing (redirect happens via useEffect)
+  return null;
 }
