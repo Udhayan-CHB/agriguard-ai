@@ -15,6 +15,39 @@ from app.tools.sustainability import get_sustainability_advice
 from app.tools.weather import get_weather, resolve_location
 
 
+KNOWN_CROPS = ("maize", "rice", "wheat", "soybean")
+
+CROP_OVERVIEWS = {
+    "maize": (
+        "Maize grows best in well-drained soil with good sunlight. Keep moisture steady, "
+        "use split nitrogen applications, control weeds early, and inspect leaves weekly for pests and disease."
+    ),
+    "rice": (
+        "Rice benefits from level fields, careful water management, split nitrogen applications, "
+        "and regular checks for leaf spots, borers, and uneven yellowing."
+    ),
+    "wheat": (
+        "Wheat needs timely sowing, balanced nitrogen, good drainage, and regular monitoring for rust and aphids."
+    ),
+    "soybean": (
+        "Soybean benefits from well-drained soil, early weed control, and monitoring for leaf-feeding insects and disease."
+    ),
+}
+
+
+def _crop_from_messages(state: AgentState) -> str:
+    """Use a crop named in the current conversation when no profile crop is active."""
+    profile_crop = str(state.get("crop", "unknown")).lower().strip()
+    if profile_crop in KNOWN_CROPS:
+        return profile_crop
+    for message in reversed(state.get("messages", [])):
+        text = str(message.content).lower()
+        for crop in KNOWN_CROPS:
+            if crop in text:
+                return crop
+    return "unknown"
+
+
 def _select_agents(message: str) -> list[str]:
     """Select applicable specialist tools from clear user-request keywords."""
     query = message.lower()
@@ -26,9 +59,11 @@ def _select_agents(message: str) -> list[str]:
         agents.append("weather")
     if any(word in query for word in (
         "disease", "pest", "insect", "yellow", "yellowing", "spot", "spots",
-        "leaf", "leaves", "rust", "blight", "wilt", "stunted", "growth", "yield",
+        "leaf", "leaves", "rust", "blight", "wilt", "stunted", "growth", "yield", "yeild",
     )):
         agents.append("crop_doctor")
+    if any(crop in query for crop in KNOWN_CROPS) and not agents:
+        agents.append("crop_info")
     if any(word in query for word in ("price", "prices", "market", "sell", "selling", "buyer")):
         agents.append("market")
     if any(word in query for word in ("sustainable", "sustainability", "organic", "eco", "water saving", "soil health")):
@@ -39,7 +74,10 @@ def _select_agents(message: str) -> list[str]:
 def supervisor_node(state: AgentState) -> Dict[str, Any]:
     user_msg = state["messages"][-1].content if state["messages"] else ""
     # Reports preselect all specialists. Keep that explicit selection intact.
-    return {"required_agents": state.get("required_agents") or _select_agents(user_msg)}
+    return {
+        "crop": _crop_from_messages(state),
+        "required_agents": state.get("required_agents") or _select_agents(user_msg),
+    }
 
 
 def executor_node(state: AgentState) -> dict:
@@ -58,6 +96,8 @@ def executor_node(state: AgentState) -> dict:
     if "crop_doctor" in agents:
         query = f"{crop} problem: {problem}"
         updates["disease_data"] = query_discovery(query) or diagnose(crop, problem)
+    if "crop_info" in agents:
+        updates["crop_info"] = CROP_OVERVIEWS[crop]
     if "market" in agents:
         updates["market_data"] = get_market_prices(crop)
     if "sustainability" in agents:
@@ -75,6 +115,7 @@ def reflection_node(state: AgentState) -> Dict[str, Any]:
         ("Crop Health", "disease_data"),
         ("Market", "market_data"),
         ("Sustainability", "sustainability_data"),
+        ("Crop Guide", "crop_info"),
     ):
         if state.get(key):
             sections.append(f"{title}:\n{state[key]}")

@@ -25,6 +25,7 @@ class AgentState(TypedDict):
     disease_data: Optional[str]
     market_data: Optional[str]
     sustainability_data: Optional[str]
+    crop_info: Optional[str]
 
     # Final output
     final_response: Optional[str]

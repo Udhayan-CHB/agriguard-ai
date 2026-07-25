@@ -7,6 +7,7 @@ KNOWLEDGE = {
         "yellow leaves": "Nitrogen deficiency or Maize Streak Virus. Apply nitrogen‑rich fertilizer and remove infected plants.",
         "spots on leaves": "Northern Corn Leaf Blight. Use fungicides (mancozeb) and rotate crops.",
         "stunted growth": "Phosphorus deficiency. Apply phosphate fertilizer.",
+        "poor yield": "Check plant population, soil fertility, moisture stress, and pest damage. Use a soil test before applying fertilizer, keep weeds controlled early, and inspect for stem borers or leaf disease.",
     },
     "rice": {
         "yellowing": "Iron deficiency or Bacterial Leaf Blight. Improve drainage and apply iron chelates.",
