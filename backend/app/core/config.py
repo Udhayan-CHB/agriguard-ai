@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     # API
     API_V1_STR: str = "/api/v1"
+    CORS_ORIGINS: str = "http://localhost:3000,https://agriguard-ai-topaz.vercel.app,https://agriguard-ai.vercel.app"
 
     # Authentication
     SECRET_KEY: str = "ce9ea915b402bf5dab392102d8bfb03718b9c803498cb84dd7c42e0dc28e4e59"
